@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AttendX Pro — Smart Attendance</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<div class="blob b1"></div>
+<div class="blob b2"></div>
+<div class="blob b3"></div>
+
+<!-- LOGIN PAGE -->
+<div id="pg-login" class="page on">
+  <div class="login-wrap">
+    <div class="brand">
+      <span class="brand-icon">⚡</span>
+      <span class="brand-name">Attend<span class="ac">X</span> Pro</span>
+      <span class="brand-sub">Smart QR Attendance Management System</span>
+    </div>
+    <div class="role-grid">
+      <div class="role-card teacher" onclick="openTeacherModal()">
+        <span class="rc-emoji">👨‍🏫</span>
+        <span class="rc-title">Admin / Teacher</span>
+        <span class="rc-desc">Students register karo, QR scan karo, records dekho</span>
+      </div>
+      <div class="role-card student" onclick="showPage('pg-student')">
+        <span class="rc-emoji">🎓</span>
+        <span class="rc-title">Student / Staff</span>
+        <span class="rc-desc">Apna permanent QR card dekho aur download karo</span>
+      </div>
+    </div>
+    <p class="pass-note">Default password: <code>teacher123</code></p>
+  </div>
+</div>
+
+<!-- Teacher Login Modal -->
+<div id="teacher-modal" class="overlay">
+  <div class="modal">
+    <h3>🔐 Admin Login</h3>
+    <p>Dashboard access ke liye password enter karo</p>
+    <div class="field" style="margin-bottom:10px">
+      <label>Password</label>
+      <input type="password" id="t-pass" placeholder="Enter password" onkeydown="if(event.key==='Enter')teacherLogin()"/>
+    </div>
+    <div id="pass-err" style="display:none" class="alert a-er">❌ Wrong password!</div>
+    <button class="btn btn-p btn-full" onclick="teacherLogin()" style="margin-top:14px">Login →</button>
+    <button class="btn btn-ghost btn-full" onclick="closeModal()" style="margin-top:8px">Cancel</button>
+  </div>
+</div>
+
+<!-- QR View Modal -->
+<div id="qr-modal" class="overlay">
+  <div class="modal" style="max-width:340px;text-align:center">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 id="qrm-title" style="font-size:1rem">QR Card</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeQRModal()">✕ Close</button>
+    </div>
+    <div id="qrm-name" style="font-family:'Sora',sans-serif;font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:3px"></div>
+    <div id="qrm-roll" style="color:var(--cyan);font-family:monospace;font-size:0.88rem;margin-bottom:14px"></div>
+    <div style="background:#fff;padding:14px;border-radius:14px;display:inline-block;box-shadow:0 0 40px rgba(99,102,241,.4);margin-bottom:14px">
+      <div id="qrm-canvas" style="width:190px;height:190px;display:flex;align-items:center;justify-content:center"></div>
+    </div>
+    <div class="alert a-in" style="text-align:left;font-size:0.78rem;line-height:1.8;margin-bottom:14px">
+      📌 <strong>Yeh QR share karo:</strong><br/>
+      ↗️ Screenshot le lo ya download karo<br/>
+      💬 WhatsApp pe bhejo<br/>
+      🖨️ Print karke de do
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" onclick="dlStudentQR()" style="flex:1;font-size:0.82rem">⬇️ Download</button>
+      <button class="btn btn-g" id="qrm-wa" onclick="" style="flex:1;font-size:0.82rem">💬 WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEACHER DASHBOARD -->
+<div id="pg-teacher" class="page">
+  <header class="t-header">
+    <div class="t-logo">⚡ Attend<span class="ac">X</span> Pro</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="t-badge">👨‍🏫 Admin Panel</span>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <nav class="t-nav">
+    <button class="tnav-btn on" onclick="goTab('tab-dash',this)">📊 Dashboard</button>
+    <button class="tnav-btn" onclick="goTab('tab-students',this)">👥 Members</button>
+    <button class="tnav-btn" onclick="goTab('tab-scan',this)">📷 Scan</button>
+    <button class="tnav-btn" onclick="goTab('tab-records',this)">📋 Records</button>
+    <button class="tnav-btn" onclick="goTab('tab-settings',this)">⚙️ Settings</button>
+  </nav>
+
+  <!-- DASHBOARD TAB -->
+  <div id="tab-dash" class="tab on">
+    <div class="sec-h">
+      <div class="sec-title">📊 Dashboard</div>
+      <div class="sec-sub" id="dash-date"></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box sc"><span class="sn" id="st-students">0</span><span class="sl">Members</span></div>
+      <div class="stat-box sg"><span class="sn" id="st-today">0</span><span class="sl">Aaj Present</span></div>
+      <div class="stat-box sp"><span class="sn" id="st-total">0</span><span class="sl">Total Scans</span></div>
+    </div>
+    <!-- Today's Attendance -->
+    <div class="card">
+      <div class="card-hd">
+        <div><div class="card-title">📅 Aaj Ki Attendance</div><div class="card-sub" id="today-label"></div></div>
+        <button class="btn btn-c btn-sm" onclick="goTabByName('tab-scan')">📷 Scan Karo</button>
+      </div>
+      <div id="dash-today"></div>
+    </div>
+    <!-- Absent Today -->
+    <div class="card">
+      <div class="card-hd">
+        <div><div class="card-title">❌ Aaj Absent</div></div>
+      </div>
+      <div id="dash-absent"></div>
+    </div>
+  </div>
+
+  <!-- MEMBERS TAB -->
+  <div id="tab-students" class="tab">
+    <div class="sec-h">
+      <div class="sec-title">👥 Members</div>
+      <div class="sec-sub">Students / Staff register karo — permanent QR card milega</div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px">➕ Naya Member Add Karo</div>
+      <div class="frow">
+        <div class="field"><label>Full Name *</label><input type="text" id="s-name" placeholder="e.g. Rahul Kumar" onkeydown="if(event.key==='Enter')document.getElementById('s-roll').focus()"/></div>
+        <div class="field"><label>ID / Roll Number *</label><input type="text" id="s-roll" placeholder="e.g. CS2021001" onkeydown="if(event.key==='Enter')addStudent()"/></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Department / Class</label><input type="text" id="s-dept" placeholder="e.g. Computer Science"/></div>
+        <div class="field"><label>Phone (optional)</label><input type="tel" id="s-email" placeholder="e.g. 9876543210"/></div>
+      </div>
+      <div id="stu-msg"></div>
+      <button class="btn btn-p" onclick="addStudent()" style="margin-top:14px">✨ Add Member</button>
+    </div>
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-title" id="stu-c-title">All Members (0)</div>
+        <input type="text" id="stu-srch" placeholder="🔍 Search..." oninput="renderStudents()"
+          style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:0.83rem;outline:none;width:150px;"
+          onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'"/>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>ID</th><th>Name</th><th>Dept</th><th>QR</th><th>Del</th></tr></thead>
+          <tbody id="stu-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCAN TAB -->
+  <div id="tab-scan" class="tab">
+    <div class="sec-h">
+      <div class="sec-title">📷 Attendance Scan</div>
+      <div class="sec-sub" id="scan-date-label"></div>
+    </div>
+    <div class="card">
+      <!-- Date selector -->
+      <div class="frow one" style="margin-bottom:16px">
+        <div class="field">
+          <label>📅 Date (aaj ya koi bhi date)</label>
+          <input type="date" id="scan-date" onchange="onDateChange()"/>
+        </div>
+      </div>
+
+      <div id="scan-area">
+        <div class="scan-box" id="scan-box" style="display:none">
+          <video id="sv" autoplay playsinline muted></video>
+          <canvas id="sc"></canvas>
+          <div class="scan-line"></div>
+          <div class="scan-corners"><span></span></div>
+        </div>
+        <div id="scan-status" class="alert a-in">📷 Camera se scan karo ya QR image upload karo</div>
+        <div id="scan-result" style="margin-top:10px"></div>
+        <div class="brow">
+          <button class="btn btn-g" id="scan-start" onclick="startScan()">▶️ Camera Scan</button>
+          <button class="btn btn-r" id="scan-stop" onclick="stopScan()" style="display:none">⏹️ Stop Camera</button>
+        </div>
+        <div class="div"><span>YA — RECOMMENDED ✅</span></div>
+        <div class="alert a-in" style="font-size:0.8rem;line-height:1.9;margin-bottom:10px">
+          📱 <strong>Upload kaise karo:</strong><br/>
+          1️⃣ Member apna QR WhatsApp pe bheje<br/>
+          2️⃣ Wo image download karo<br/>
+          3️⃣ Neeche button se upload karo → ✅ Attendance mark!
+        </div>
+        <label class="upl-btn" for="scan-upl" style="font-size:1rem;padding:14px;border-width:2px">
+          🖼️ QR Image Upload karo (Gallery/WhatsApp)
+        </label>
+        <input type="file" id="scan-upl" accept="image/*" style="display:none" onchange="scanUpload(event)"/>
+      </div>
+
+      <div id="scan-progress" style="margin-top:20px">
+        <div class="div"><span>Aaj Ka Status</span></div>
+        <div id="progress-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECORDS TAB -->
+  <div id="tab-records" class="tab">
+    <div class="sec-h">
+      <div class="sec-title">📋 Attendance Records</div>
+      <div class="sec-sub">Date ke hisaab se records dekho aur export karo</div>
+    </div>
+    <div class="card">
+      <div class="card-hd" style="flex-wrap:wrap;gap:12px">
+        <div class="frow" style="margin:0;flex:1;min-width:250px">
+          <div class="field">
+            <label>📅 Date Filter</label>
+            <input type="date" id="rec-date" onchange="renderRecords()"/>
+          </div>
+          <div class="field">
+            <label>👤 Member Filter</label>
+            <select id="rec-member" onchange="renderRecords()">
+              <option value="">— Sabhi Members —</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-g btn-sm" onclick="exportCSV()" style="margin-top:auto">📥 Export CSV</button>
+      </div>
+      <p style="color:var(--muted);font-size:0.8rem;margin:0 0 12px" id="rec-stats"></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>ID</th><th>Name</th><th>Dept</th><th>Date</th><th>Time</th></tr></thead>
+          <tbody id="rec-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- Summary by date -->
+    <div class="card" id="summary-card" style="display:none">
+      <div class="card-title" style="margin-bottom:14px">📊 Summary</div>
+      <div id="summary-content"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS TAB -->
+  <div id="tab-settings" class="tab">
+    <div class="sec-h"><div class="sec-title">⚙️ Settings</div></div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px">🔐 Password Change Karo</div>
+      <div class="frow">
+        <div class="field"><label>Current Password</label><input type="password" id="cp-old" placeholder="Current password"/></div>
+        <div class="field"><label>New Password</label><input type="password" id="cp-new" placeholder="New password (min 4 chars)"/></div>
+      </div>
+      <div id="cp-msg"></div>
+      <button class="btn btn-p" onclick="changePass()" style="margin-top:14px">Update Password</button>
+    </div>
+    <div class="card" style="border-color:rgba(239,68,68,0.2)">
+      <div class="card-title" style="color:var(--red);margin-bottom:8px">⚠️ Danger Zone</div>
+      <p style="color:var(--muted);font-size:0.83rem;margin-bottom:16px">Permanently delete all data. Ye action undo nahi ho sakti.</p>
+      <button class="btn btn-r btn-sm" onclick="clearAll()">🗑️ Clear All Data</button>
+    </div>
+  </div>
+</div>
+
+<!-- STUDENT PAGE -->
+<div id="pg-student" class="page">
+  <header class="s-header">
+    <button class="btn btn-ghost btn-sm" onclick="showPage('pg-login')">← Back</button>
+    <span style="font-family:'Sora',sans-serif;font-weight:700;color:#fff">🎓 Member Portal</span>
+  </header>
+  <div class="s-body">
+    <div class="s-card">
+      <div class="s-h">Apna QR Card Lo</div>
+      <p class="s-p">ID / Roll number daalo → Permanent QR milega — Isko save kar lo</p>
+
+      <div id="s-input">
+        <div class="field" style="text-align:left;margin-bottom:12px">
+          <label>ID / Roll Number</label>
+          <input type="text" id="s-roll-inp" placeholder="e.g. CS2021001" onkeydown="if(event.key==='Enter')lookupStu()"/>
+        </div>
+        <div id="s-err"></div>
+        <button class="btn btn-c btn-full" onclick="lookupStu()">Get My QR Card →</button>
+      </div>
+
+      <div id="s-qr" style="display:none">
+        <div class="s-name" id="sd-name"></div>
+        <div class="s-roll" id="sd-roll"></div>
+        <div class="s-dept" id="sd-dept"></div>
+        <div class="qr-frame">
+          <div id="sd-canvas" style="width:175px;height:175px;display:flex;align-items:center;justify-content:center"></div>
+          <div class="qr-bkt"><span></span><span></span><span></span><span></span></div>
+        </div>
+        <div class="s-note">
+          📌 <strong>Save kar lo yeh QR</strong> — screenshot ya download<br/>
+          👨‍🏫 Admin jab scan karega tabhi attendance mark hogi<br/>
+          🔄 Yeh QR permanent hai — ID same = QR same
+        </div>
+        <div class="brow" style="margin-top:14px">
+          <button class="btn btn-ghost" onclick="dlQR()" style="flex:1">⬇️ Download</button>
+          <button class="btn btn-ghost" onclick="resetStu()" style="flex:1">🔄 Change</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
